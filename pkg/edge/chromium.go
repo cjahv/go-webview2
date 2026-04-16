@@ -378,11 +378,14 @@ func (e *Chromium) CreateCoreWebView2ControllerCompleted(res uintptr, controller
 	if err != nil {
 		e.errorCallback(err)
 	}
-	if webview14 := (*wv2.ICoreWebView2)(unsafe.Pointer(e.webview)).GetICoreWebView2_14(); webview14 != nil {
-		e.serverCertificateErrorDetected = wv2.NewICoreWebView2ServerCertificateErrorDetectedEventHandler(&serverCertificateErrorDetectedHandler{})
-		_, err = webview14.AddServerCertificateErrorDetected(e.serverCertificateErrorDetected)
-		if err != nil {
-			e.errorCallback(err)
+	if HasCapability(e.webview2RuntimeVersion, ServerCertificate) {
+		webview14 := (*wv2.ICoreWebView2)(unsafe.Pointer(e.webview)).GetICoreWebView2_14()
+		if webview14 != nil {
+			e.serverCertificateErrorDetected = wv2.NewICoreWebView2ServerCertificateErrorDetectedEventHandler(&serverCertificateErrorDetectedHandler{})
+			_, err = webview14.AddServerCertificateErrorDetected(e.serverCertificateErrorDetected)
+			if err != nil {
+				log.Printf("[WebView2] AddServerCertificateErrorDetected failed: %v", err)
+			}
 		}
 	}
 	err = e.webview.AddContainsFullScreenElementChanged(e.containsFullScreenElementChanged, &token)
