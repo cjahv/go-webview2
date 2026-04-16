@@ -17,6 +17,7 @@ import (
 	"unsafe"
 
 	"github.com/wailsapp/go-webview2/internal/w32"
+	wv2 "github.com/wailsapp/go-webview2/pkg/webview2"
 	"github.com/wailsapp/go-webview2/webviewloader"
 	"golang.org/x/sys/windows"
 )
@@ -67,6 +68,7 @@ type Chromium struct {
 	acceleratorKeyPressed            *ICoreWebView2AcceleratorKeyPressedEventHandler
 	navigationCompleted              *ICoreWebView2NavigationCompletedEventHandler
 	processFailed                    *ICoreWebView2ProcessFailedEventHandler
+	serverCertificateErrorDetected   *wv2.ICoreWebView2ServerCertificateErrorDetectedEventHandler
 
 	environment            *ICoreWebView2Environment
 	webview2RuntimeVersion string
@@ -376,6 +378,13 @@ func (e *Chromium) CreateCoreWebView2ControllerCompleted(res uintptr, controller
 	if err != nil {
 		e.errorCallback(err)
 	}
+	if webview14 := (*wv2.ICoreWebView2)(unsafe.Pointer(e.webview)).GetICoreWebView2_14(); webview14 != nil {
+		e.serverCertificateErrorDetected = wv2.NewICoreWebView2ServerCertificateErrorDetectedEventHandler(&serverCertificateErrorDetectedHandler{})
+		_, err = webview14.AddServerCertificateErrorDetected(e.serverCertificateErrorDetected)
+		if err != nil {
+			e.errorCallback(err)
+		}
+	}
 	err = e.webview.AddContainsFullScreenElementChanged(e.containsFullScreenElementChanged, &token)
 	if err != nil {
 		e.errorCallback(err)
@@ -556,6 +565,27 @@ func (e *Chromium) NavigationCompleted(sender *ICoreWebView2, args *ICoreWebView
 func (e *Chromium) ProcessFailed(sender *ICoreWebView2, args *ICoreWebView2ProcessFailedEventArgs) uintptr {
 	if e.ProcessFailedCallback != nil {
 		e.ProcessFailedCallback(sender, args)
+	}
+	return 0
+}
+
+type serverCertificateErrorDetectedHandler struct{}
+
+func (h *serverCertificateErrorDetectedHandler) QueryInterface(_, _ uintptr) uintptr {
+	return 0
+}
+
+func (h *serverCertificateErrorDetectedHandler) AddRef() uintptr {
+	return 1
+}
+
+func (h *serverCertificateErrorDetectedHandler) Release() uintptr {
+	return 1
+}
+
+func (h *serverCertificateErrorDetectedHandler) ServerCertificateErrorDetected(_ *wv2.ICoreWebView2, args *wv2.ICoreWebView2ServerCertificateErrorDetectedEventArgs) uintptr {
+	if err := args.PutAction(wv2.COREWEBVIEW2_SERVER_CERTIFICATE_ERROR_ACTION_ALWAYS_ALLOW); err != nil {
+		return uintptr(windows.E_FAIL)
 	}
 	return 0
 }
