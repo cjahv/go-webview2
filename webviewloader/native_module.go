@@ -14,6 +14,8 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+const customAdditionalBrowserArgumentsEnv = "GO_WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"
+
 func init() {
 	preventEnvAndRegistryOverrides(nil, nil, "")
 }
@@ -157,6 +159,9 @@ func preventEnvAndRegistryOverrides(browserFolder, userDataFolder *uint16, addit
 	os.Setenv("WEBVIEW2_PIPE_FOR_SCRIPT_DEBUGGER", "")
 
 	// Set these overrides to the values or empty to prevent registry and external env overrides
+	if additionalBrowserArgs == "" {
+		additionalBrowserArgs = os.Getenv(customAdditionalBrowserArgumentsEnv)
+	}
 	os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", additionalBrowserArgs)
 	os.Setenv("WEBVIEW2_RELEASE_CHANNEL_PREFERENCE", "0")
 	os.Setenv("WEBVIEW2_BROWSER_EXECUTABLE_FOLDER", windows.UTF16PtrToString(browserFolder))
